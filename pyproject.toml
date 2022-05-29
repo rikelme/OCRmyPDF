@@ -74,7 +74,8 @@ known_third_party = [
   "sphinx_rtd_theme",
   "tqdm",
   "watchdog",
-  "werkzeug"
+  "werkzeug",
+  "google-cloud-vision"
 ]
 
 [tool.pytest.ini_options]

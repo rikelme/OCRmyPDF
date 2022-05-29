@@ -569,6 +569,7 @@ def ocr_engine_hocr(input_file: Path, page_context: PageContext):
         input_file=input_file,
         output_hocr=hocr_out,
         output_text=hocr_text_out,
+		page_no=page_context.pageno,
         options=options,
     )
     return (hocr_out, hocr_text_out)
