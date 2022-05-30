@@ -184,7 +184,9 @@ class GCVTesseractOcrEngine(OcrEngine):
 				input_file=input_file,
 				output_hocr=output_hocr,
 				output_text=output_text,
+				languages=options.languages,
 				page_no=page_no,
+				is_translit=not(options.no_translit),
 				timeout=options.tesseract_timeout,
 			)
 		elif options.ocr_engine == 'tesseract':

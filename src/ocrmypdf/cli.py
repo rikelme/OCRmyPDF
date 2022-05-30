@@ -130,6 +130,13 @@ sending the result to OCRmyPDF through a pipe.
 Online documentation is located at:
 	https://ocrmypdf.readthedocs.io/en/latest/introduction.html
 
+For supporting various fonts for non-latin alphabets, use --fontname and --fontfile arguments.
+For example, dowload .tff file for DejaVuSerif font from https://www.fontsquirrel.com/fonts/dejavu-serif.
+Use it for Cyrillic texts as follows:
+
+	ocrmypdf --fontname DejaVuSerif --fontfile {path_to_tff_file} word_document.pdf output.pdf
+
+
 """,
 	)
 
@@ -434,6 +441,28 @@ Online documentation is located at:
 		default='gcv',
 		help="Choose OCR Engine from [gcv, tesseract]. Default is gcv.", 
 	)
+	advanced.add_argument(
+		'--fontname',
+		type=str,
+		default='Helvetica',
+		help="Font used to write OCR results to pdf."
+		"This is especilly important for Cyrillic texts, as defualt Helvetica does not support Cyrillic alpghabet."
+	)
+	advanced.add_argument(
+		'--fontfile',
+		type=str,
+		default=None,
+		help="Path to .tff file for custom fonts not supported out of the box."
+		"For Cyrillic text, you can download dejavu-serif from https://www.fontsquirrel.com/fonts/dejavu-serif ." 
+	)
+	advanced.add_argument(
+		'--no-translit',
+		action='store_true',
+		help="By defualt Cyrillic text will be transliterated to Latin when using GCV."
+		"Set this argument in case you want the original Cyrillic letters."
+		"Hint: use --fontname and --fontfile in such case to properly handle Cyrillic letters." 
+	)
+
 	advanced.add_argument(
 		'--pdf-renderer',
 		choices=['auto', 'hocr', 'hocrdebug'],

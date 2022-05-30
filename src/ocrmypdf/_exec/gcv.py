@@ -6,7 +6,10 @@ import json
 from os import fspath
 from pathlib import Path
 from subprocess import CalledProcessError, TimeoutExpired
-
+from typing import List
+from enum import Enum
+from xmlrpc.client import boolean
+from langcodes import Language
 from PIL import Image
 
 from google.cloud import vision
@@ -16,14 +19,13 @@ from google.protobuf.json_format import MessageToJson
 from string import Template
 from xml.sax.saxutils import escape
 
+from transliterate import translit, detect_language
+
 from ocrmypdf.exceptions import (
 	MissingDependencyError,
 	SubprocessOutputError,
 	TesseractConfigError,
 )
-from ocrmypdf.pluginspec import OrientationConfidence
-from ocrmypdf.subprocess import get_version, run
-
 
 
 log = logging.getLogger(__name__)
@@ -114,32 +116,55 @@ def make_content_box(ocr_class=None, box=None, id=None):
 					content=[],
 					box=box)
 
-def hocr_from_response(resp, page_no=1, **kwargs):
+def iso_lang_convert(langs):
+	"""
+	Convert ISO 639-2 language codes to ISO 639-1 codes if possible
+	"""
+	try:
+		langs_alpha3 = [Language.get(l) for l in langs]
+		langs_filtered = [str(l) for l in langs_alpha3 if l.is_valid()]
+	except:
+		langs_filtered = []
+	return langs_filtered
 
+class BreakType(Enum):
+	""" Google's Enum for detected breaks in symbol.property.detected_break """
+	UNKNOWN = 0
+	SPACE = 1
+	SURE_SPACE = 2 # IS_PREFIX_FIELD_NUMBER 2
+	EOL_SURE_SPACE = 3
+	HYPHEN = 4
+	LINE_BREAK = 5
+
+def hocr_from_response(resp, page_no=1, is_translit=True):
+	
 	count_dict = {'page': page_no, 'block': 0, 'par': 0, 'line': 0, 'word': 0}
 	class_dict = {'page': 'ocr_page', 'block': 'ocr_carea', 'par': 'ocr_par', 'line': 'ocr_line', 'word': 'ocrx_word'}
 
-	for page_id, pageObj in enumerate(resp['fullTextAnnotation']['pages']):
-		page_box = [{"x": 0, "y": 0}, None, {"x": pageObj['width'], "y": pageObj['height']}, None]
+	for pageObj in resp.full_text_annotation.pages:
+		page_box = [{"x": 0, "y": 0}, None, {"x": pageObj.width, "y": pageObj.height}, None]
 		page = make_content_box(class_dict['page'], page_box, f'page_{page_no}')
 
-		page.page_height = pageObj['height']
-		page.page_width = pageObj['width']
+		page.page_height = pageObj.height
+		page.page_width = pageObj.width
 
 		# print(len(pageObj['blocks']), 'num blocks')
 		breaks = []
 		
-		for block in pageObj['blocks']:
+		for block in pageObj.blocks:
 
-			block_box = block['boundingBox']['vertices']
+			block_box = json.loads(MessageToJson(block.bounding_box))['vertices']
+			# print(block_box, 'box')
+			# block_box = MessageToJson(block_box)
+			# print(block_box, 'json box')
 			count_dict['block'] += 1
 			block_id = f'block_{page_no}_' + str(count_dict['block'])
 			cur_block = make_content_box(class_dict['block'], block_box, block_id)
 			# print(len(block['paragraphs']), 'num paras')
-			for pid, paragraph in enumerate(block['paragraphs']):
+			for paragraph in block.paragraphs:
 				# print(len(paragraph['words']), 'num paras', pid)
 				
-				par_box = paragraph['boundingBox']['vertices']
+				par_box = json.loads(MessageToJson(paragraph.bounding_box))['vertices']
 				count_dict['par'] += 1
 				par_id = f'par_{page_no}_' + str(count_dict['par'])
 				cur_par = make_content_box(class_dict['par'], par_box, par_id)
@@ -148,24 +173,24 @@ def hocr_from_response(resp, page_no=1, **kwargs):
 				line_id = f'line_{page_no}_' + str(count_dict['line'])
 				cur_line = make_content_box(class_dict['line'], None, line_id)
 				new_line = None # for multiple line is para
-				for e, wordObj in enumerate(paragraph['words']):
-					word_box = wordObj['boundingBox']['vertices']
+				for wordObj in paragraph.words:
+					word_box = json.loads(MessageToJson(wordObj.bounding_box))['vertices']
 					count_dict['word'] += 1
 					symbols = []
 					
-					for symbol in wordObj['symbols']:
-						symbols.append(symbol['text'])
+					for symbol in wordObj.symbols:
+						symbols.append(symbol.text)
 
 						# # add box position a and d of first symbol to line box
 						# if line_box[0] is None or line_box[3] is None:
-						# 	symbol_box = symbol['boundingBox']['vertices']
+						# 	symbol_box = symbol['bounding_box']['vertices']
 						# 	line_box = symbol_box
 
-						property = symbol.get('property', None)
-						detectedBreak = property.get('detectedBreak', None) if property else None
-						if detectedBreak is not None:
-							detectedBreak = detectedBreak['type']
-							breaks.append(detectedBreak)
+						property = symbol.property
+						detected_break = property.detected_break.type # , None) if property else None
+						if detected_break is not None:
+							# detectedBreak = detectedBreak.type
+							breaks.append(detected_break)
 								
 							# add best guesses for word breaks
 							# print(detectedBreak)
@@ -175,7 +200,7 @@ def hocr_from_response(resp, page_no=1, **kwargs):
 							# elif detectedBreak == 'SURE_SPACE':
 							# 	# symbols.append(' ')
 							# 	pass
-							if detectedBreak == 'EOL_SURE_SPACE':
+							if detected_break == BreakType.EOL_SURE_SPACE.value:
 								# Make a new line
 								# symbols.append(' ')
 								# pass
@@ -186,14 +211,22 @@ def hocr_from_response(resp, page_no=1, **kwargs):
 								count_dict['line'] += 1
 								line_id = f'line_{page_no}_' + str(count_dict['line'])
 								new_line = make_content_box(class_dict['line'], None, line_id)
-							elif detectedBreak == 'HYPHEN':
+							elif detected_break == BreakType.HYPHEN.value:
 								symbols.append('-')
 							# elif detectedBreak == 'LINE_BREAK':
 							# 	# symbols.append(' ')
 							# 	pass
 					
 					word_text = ''.join(symbols)
+					# transliterate Cyrilic languages
+					if is_translit:
+						cyr_lang = detect_language(word_text)
+						if cyr_lang:
+							word_text = translit(word_text, cyr_lang, reversed=True)
+
 					word_id = f'word_{page_no}_' + str(count_dict['word'])
+					# print(word_text, 'content')
+					# print(escape(word_text), 'excaped')
 					word = GCVAnnotation(htmlid=word_id, ocr_class='ocrx_word',
 										content=escape(word_text), box=word_box)
 					
@@ -204,7 +237,6 @@ def hocr_from_response(resp, page_no=1, **kwargs):
 						cur_par.content.append(cur_line)
 						cur_line = new_line
 						new_line = None
-				
 				cur_line.maximize_bbox()
 				cur_par.content.append(cur_line)
 				cur_par.maximize_bbox()
@@ -214,7 +246,7 @@ def hocr_from_response(resp, page_no=1, **kwargs):
 			page.content.append(cur_block)
 		page.maximize_bbox()
 		hocr = page.render().encode('utf-8') if str == bytes else page.render()
-		text = resp['fullTextAnnotation']['text']
+		text = resp.full_text_annotation.text
 		return hocr, text
 
 
@@ -284,8 +316,10 @@ def generate_hocr(
 	input_file: Path,
 	output_hocr: Path,
 	output_text: Path,
+	languages: List[str],
 	page_no: int,
 	timeout: float,
+	is_translit: bool,
 ):
 	"""Generate a hOCR file using GCV OCR, which must be converted to PDF."""
 	prefix = output_hocr.with_suffix('')
@@ -298,10 +332,11 @@ def generate_hocr(
 			content = image_file.read()
 	
 		image = types.Image(content=content)
-		response = gcv_client.document_text_detection(image=image)
-		response_json = json.loads(MessageToJson(response))
-		hocr, text_desc = hocr_from_response(response_json, page_no)
-
+		if languages:
+			languages = iso_lang_convert(languages)
+		response = gcv_client.document_text_detection(image=image, image_context={"language_hints": languages})
+		# response_json = json.loads(MessageToJson(response))
+		hocr, text_desc = hocr_from_response(response, page_no, is_translit)
 		output_hocr.write_text(hocr, encoding='utf-8')
 		output_text.write_text(text_desc, encoding='utf-8')
 
