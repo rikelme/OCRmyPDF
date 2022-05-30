@@ -137,10 +137,6 @@ class HocrTransform:
 
 	def __init__(self, *, hocr_filename: Union[str, Path], dpi: float):
 		self.dpi = dpi
-		with open('../test/tess_21a.hocr', 'w', encoding='utf-8') as f:
-			with open(hocr_filename, 'r', encoding='utf-8') as h:
-				for l in h:
-					f.write(f'{l} \n')
 		self.hocr = ElementTree.parse(os.fspath(hocr_filename))
 
 		# if the hOCR file has a namespace, ElementTree requires its use to
@@ -283,6 +279,13 @@ class HocrTransform:
 			pagesize=(self.width, self.height),
 			pageCompression=1,
 		)
+
+		if fontfile is not None:
+			styles = getSampleStyleSheet()
+			# the magic is here
+			styles['Normal'].fontName = fontname
+			styles['Heading1'].fontName = fontname
+			pdfmetrics.registerFont(TTFont(fontname, fontfile, 'UTF-8'))
 
 		# draw bounding box for each paragraph
 		# light blue for bounding box of paragraph
