@@ -7,6 +7,8 @@
 [docs]: https://readthedocs.org/projects/ocrmypdf/badge/?version=latest "RTD"
 [pyversions]: https://img.shields.io/pypi/pyversions/ocrmypdf "Supported Python versions"
 
+This repository is a fork from [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) that adds support for Google Cloud Vision (GCV) APIs based OCR.
+
 OCRmyPDF adds an OCR text layer to scanned PDF files, allowing them to be searched or copy-pasted.
 
 ```bash
@@ -17,6 +19,7 @@ ocrmypdf                      # it's a scriptable command line program
    --title "My PDF"           # it can change output metadata
    --jobs 4                   # it uses multiple cores by default
    --output-type pdfa         # it produces PDF/A by default
+   --ocr-engine gcv           # it provides support for gcv and tesseract based OCR, uses gcv by default
    input_scanned.pdf          # takes PDF input (or images)
    output_searchable.pdf      # produces validated PDF output
 ```
@@ -33,7 +36,7 @@ ocrmypdf                      # it's a scriptable command line program
 - If requested, deskews and/or cleans the image before performing OCR
 - Validates input and output files
 - Distributes work across all available CPU cores
-- Uses [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) engine to recognize more than [100 languages](https://github.com/tesseract-ocr/tessdata)
+- Uses [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) engine or [Google Cloud Vision](https://cloud.google.com/vision) APIs to recognize more than [100 languages](https://github.com/tesseract-ocr/tessdata)
 - Scales properly to handle files with thousands of pages
 - Battle-tested on millions of PDFs
 
@@ -41,33 +44,13 @@ For details: please consult the [documentation](https://ocrmypdf.readthedocs.io/
 
 ## Motivation
 
-I searched the web for a free command line tool to OCR PDF files: I found many, but none of them were really satisfying:
-
-- Either they produced PDF files with misplaced text under the image (making copy/paste impossible)
-- Or they did not handle accents and multilingual characters
-- Or they changed the resolution of the embedded images
-- Or they generated ridiculously large PDF files
-- Or they crashed when trying to OCR
-- Or they did not produce valid PDF files
-- On top of that none of them produced PDF/A files (format dedicated for long time storage)
-
-...so I decided to develop my own tool.
+Original [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) repo only provides support for Tesseract engine for OCR. We have extended that to add OCR support based on GCV APIs for document text annotations.
+- All preprocessing (dskew and roatation etc.) is done using Tesseract.
+- Can either use Tesseract or GCV APIs for OCR.
 
 ## Installation
+Currenlty only installtion from source is supported. Follow [Installing HEAD revision from sources](docs/installation.rst#installing-head-revision-from-sources) for installation guide. 
 
-Linux, Windows, macOS and FreeBSD are supported. Docker images are also available, for both x64 and ARM.
-
-| Operating system              | Install command               |
-| ----------------------------- | ------------------------------|
-| Debian, Ubuntu                | ``apt install ocrmypdf``      |
-| Windows Subsystem for Linux   | ``apt install ocrmypdf``      |
-| Fedora                        | ``dnf install ocrmypdf``      |
-| macOS                         | ``brew install ocrmypdf``     |
-| LinuxBrew                     | ``brew install ocrmypdf``     |
-| FreeBSD                       | ``pkg install py37-ocrmypdf`` |
-| Conda                         | ``conda install ocrmypdf``    |
-
-For everyone else, [see our documentation](https://ocrmypdf.readthedocs.io/en/latest/installation.html) for installation steps.
 
 ## Languages
 
@@ -109,6 +92,13 @@ Please report issues on our [GitHub issues](https://github.com/ocrmypdf/OCRmyPDF
 ## Requirements
 
 In addition to the required Python version (3.7+), OCRmyPDF requires external program installations of Ghostscript and Tesseract OCR. OCRmyPDF is pure Python, and runs on pretty much everything: Linux, macOS, Windows and FreeBSD.
+
+## Known Issues
+
+Following arguments are experimental only and are known to not work properly:
+- `--fontname`
+- `-fontfile`
+- `--no-translit` 
 
 ## Press & Media
 

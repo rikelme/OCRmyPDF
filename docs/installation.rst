@@ -696,7 +696,7 @@ environment:
 
 .. code-block:: bash
 
-    pip3 install git+https://github.com/ocrmypdf/OCRmyPDF.git
+    pip3 install git+https://github.com/ualiawan/OCRmyPDF.git
 
 Or, to install in `development
 mode <https://pythonhosted.org/setuptools/setuptools.html#development-mode>`__,
@@ -704,14 +704,16 @@ allowing customization of OCRmyPDF, use the ``-e`` flag:
 
 .. code-block:: bash
 
-    pip3 install -e git+https://github.com/ocrmypdf/OCRmyPDF.git
+    pip3 install -e git+https://github.com/ualiawan/OCRmyPDF.git
+
 
 You may find it easiest to install in a virtual environment, rather than
 system-wide:
 
 .. code-block:: bash
 
-    git clone -b master https://github.com/ocrmypdf/OCRmyPDF.git
+    git clone -b master https://github.com/ualiawan/OCRmyPDF.git
+
     python3 -m venv
     source venv/bin/activate
     cd OCRmyPDF
@@ -738,7 +740,8 @@ To install all of the development and test requirements:
 
 .. code-block:: bash
 
-    git clone -b master https://github.com/ocrmypdf/OCRmyPDF.git
+    git clone -b master https://github.com/ualiawan/OCRmyPDF.git
+
     python3 -m venv
     source venv/bin/activate
     cd OCRmyPDF

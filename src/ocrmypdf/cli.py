@@ -447,6 +447,7 @@ Use it for Cyrillic texts as follows:
 		default='Helvetica',
 		help="Font used to write OCR results to pdf."
 		"This is especilly important for Cyrillic texts, as defualt Helvetica does not support Cyrillic alpghabet."
+		" Experimental only."
 	)
 	advanced.add_argument(
 		'--fontfile',
@@ -454,13 +455,15 @@ Use it for Cyrillic texts as follows:
 		default=None,
 		help="Path to .tff file for custom fonts not supported out of the box."
 		"For Cyrillic text, you can download dejavu-serif from https://www.fontsquirrel.com/fonts/dejavu-serif ." 
+		" Experimental only."
 	)
 	advanced.add_argument(
 		'--no-translit',
 		action='store_true',
 		help="By defualt Cyrillic text will be transliterated to Latin when using GCV."
 		"Set this argument in case you want the original Cyrillic letters."
-		"Hint: use --fontname and --fontfile in such case to properly handle Cyrillic letters." 
+		"Hint: use --fontname and --fontfile in such case to properly handle Cyrillic letters."
+		"Only for GCV ocr-engine. Experimental only." 
 	)
 
 	advanced.add_argument(

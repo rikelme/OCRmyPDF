@@ -137,7 +137,11 @@ class HocrTransform:
 
 	def __init__(self, *, hocr_filename: Union[str, Path], dpi: float):
 		self.dpi = dpi
+		# hocr_filename = '../test/tess_21a.hocr'
 		self.hocr = ElementTree.parse(os.fspath(hocr_filename))
+		with open(hocr_filename, 'r') as f:
+			for l in f:
+				print(l)
 
 		# if the hOCR file has a namespace, ElementTree requires its use to
 		# find elements
@@ -272,6 +276,17 @@ class HocrTransform:
 				drawing each word without spaces. Generally this improves text
 				extraction.
 		"""
+		#set fonts
+		from reportlab.lib.fonts import addMapping
+		if fontfile is not None:
+			styles = getSampleStyleSheet()
+			# the magic is here
+			styles['Normal'].fontName = fontname
+			styles['Heading1'].fontName = fontname
+			pdfmetrics.registerFont(TTFont(fontname, fontfile, 'UTF-8'))
+			addMapping(fontname, 0, 0, fontname)
+			print('fonts', fontname)
+
 		# create the PDF file
 		# page size in points (1/72 in.)
 		pdf = Canvas(
@@ -280,12 +295,6 @@ class HocrTransform:
 			pageCompression=1,
 		)
 
-		if fontfile is not None:
-			styles = getSampleStyleSheet()
-			# the magic is here
-			styles['Normal'].fontName = fontname
-			styles['Heading1'].fontName = fontname
-			pdfmetrics.registerFont(TTFont(fontname, fontfile, 'UTF-8'))
 
 		# draw bounding box for each paragraph
 		# light blue for bounding box of paragraph
@@ -293,6 +302,8 @@ class HocrTransform:
 		# light blue for bounding box of paragraph
 		pdf.setFillColor(cyan)
 		pdf.setLineWidth(0)  # no line for bounding box
+		pdf.setFont(fontname, 11)
+
 		for elem in self.hocr.iterfind(self._child_xpath('p', 'ocr_par')):
 			elemtxt = self._get_element_text(elem).rstrip()
 			if len(elemtxt) == 0:
@@ -411,7 +422,8 @@ class HocrTransform:
 		elements = line.findall(self._child_xpath('span', elemclass))
 		for elem in elements:
 			elemtxt = self._get_element_text(elem).strip()
-			elemtxt = self.replace_unsupported_chars(elemtxt)
+			if fontname == 'Helvetica':
+				elemtxt = self.replace_unsupported_chars(elemtxt)
 			if elemtxt == '':
 				continue
 
@@ -495,6 +507,16 @@ if __name__ == "__main__":
 		default=False,
 		help='Add spaces between words',
 	)
+	parser.add_argument(
+		'--fontname',
+		default='Helvetica',
+		help='Add spaces between words',
+	)
+	parser.add_argument(
+		'--fontfile',
+		default=None,
+		help='Add spaces between words',
+	)
 	parser.add_argument('hocrfile', help='Path to the hocr file to be parsed')
 	parser.add_argument('outputfile', help='Path to the PDF file to be generated')
 	args = parser.parse_args()
@@ -505,4 +527,6 @@ if __name__ == "__main__":
 		image_filename=args.image,
 		show_bounding_boxes=args.boundingboxes,
 		interword_spaces=args.interword_spaces,
+		fontname=args.fontname,
+		fontfile=args.fontfile
 	)
