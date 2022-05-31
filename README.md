@@ -12,6 +12,8 @@ This repository is a fork from [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) 
 OCRmyPDF adds an OCR text layer to scanned PDF files, allowing them to be searched or copy-pasted.
 
 ```bash
+export GOOGLE_APPLICATION_CREDENTIALS={path_to_gcv_api_key}
+
 ocrmypdf                      # it's a scriptable command line program
    -l eng+fra                 # it supports multiple languages
    --rotate-pages             # it can fix pages that are misrotated
