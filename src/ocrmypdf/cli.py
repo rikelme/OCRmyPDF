@@ -132,7 +132,7 @@ Online documentation is located at:
 
 For supporting various fonts for non-latin alphabets, use --fontname and --fontfile arguments.
 For example, dowload .tff file for DejaVuSerif font from https://www.fontsquirrel.com/fonts/dejavu-serif.
-Use it for Cyrillic texts as follows:
+Use it for Non-Latin texts as follows:
 
 	ocrmypdf --fontname DejaVuSerif --fontfile {path_to_tff_file} word_document.pdf output.pdf
 
@@ -446,29 +446,30 @@ Use it for Cyrillic texts as follows:
 		type=str,
 		default='Helvetica',
 		help="Font used to write OCR results to pdf."
-		"This is especilly important for Cyrillic texts, as defualt Helvetica does not support Cyrillic alpghabet."
-		" Experimental only."
+		"This is especilly important for non-latin texts, as defualt Helvetica does not support non-latin alphabet."
+		" Experimental only. Useful when --pdf-renderer is set to hocr or hocrdebug."
 	)
 	advanced.add_argument(
 		'--fontfile',
 		type=str,
 		default=None,
 		help="Path to .tff file for custom fonts not supported out of the box."
-		"For Cyrillic text, you can download dejavu-serif from https://www.fontsquirrel.com/fonts/dejavu-serif ." 
+		"For non-latin text, you can download dejavu-serif from https://www.fontsquirrel.com/fonts/dejavu-serif ." 
 		" Experimental only."
 	)
+
 	advanced.add_argument(
-		'--no-translit',
+		'--no-graft',
 		action='store_true',
-		help="By defualt Cyrillic text will be transliterated to Latin when using GCV."
-		"Set this argument in case you want the original Cyrillic letters."
-		"Hint: use --fontname and --fontfile in such case to properly handle Cyrillic letters."
-		"Only for GCV ocr-engine. Experimental only." 
+		help="By defualt data-grafting is applied in cases pdf-renderer is set to hocr or hocrdebug."
+		"Data grafting only supports Latin characters. If the text contains non-latin text, set this argument along with a custom font that can hanlde non-latin text."
+		"Only for --pdf-renderer set to hocr or hocrdebug. Experimental only. Useful for GCV ocr-engine. "
+		"Do not use with ocr-engine tesseract if pdf renderer mode is not set to hocr or hocrdebug. "
 	)
 
 	advanced.add_argument(
 		'--pdf-renderer',
-		choices=['auto', 'hocr', 'hocrdebug'],
+		choices=['auto', 'sandwich', 'hocr', 'hocrdebug'],
 		default='auto',
 		help="Choose OCR PDF renderer - the default option is to let OCRmyPDF "
 		"choose.  See documentation for discussion.",

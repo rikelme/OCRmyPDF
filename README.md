@@ -26,6 +26,26 @@ ocrmypdf                      # it's a scriptable command line program
    output_searchable.pdf      # produces validated PDF output
 ```
 
+If input file contains non-latin text, you can either use `--ocr-engine tesseract` with `--pdf-renderer auto`, or use GCV with no grafting:
+
+```
+ocrmypdf                      # it's a scriptable command line program
+   -l rus                 # it supports multiple languages
+   --title "My PDF"           # it can change output metadata
+   --jobs 4                   # it uses multiple cores by default
+   --ocr-engine gcv           # it provides support for gcv and tesseract based OCR, uses gcv by default
+   --no-graft                 # Use hocr to pdf trnaform output directly, instead of text grafting by pikePDF which only supports Latin text.
+   --fontname DejaVuSerif     # use custom font that supports non-latin text
+   --fontfile fonts/DejaVuSerif.ttf # Provide path to TTF font file.
+   input_scanned.pdf          # takes PDF input (or images)
+   output_searchable.pdf      # produces validated PDF output
+```
+
+In this case, following to features may not work properly:
+- PDF/A support
+- Page rotation
+
+
 [See the release notes for details on the latest changes](https://ocrmypdf.readthedocs.io/en/latest/release_notes.html).
 
 ## Main features
@@ -95,12 +115,12 @@ Please report issues on our [GitHub issues](https://github.com/ocrmypdf/OCRmyPDF
 
 In addition to the required Python version (3.7+), OCRmyPDF requires external program installations of Ghostscript and Tesseract OCR. OCRmyPDF is pure Python, and runs on pretty much everything: Linux, macOS, Windows and FreeBSD.
 
-## Known Issues
+## Experimental Features
 
-Following arguments are experimental only and are known to not work properly:
+Following arguments are experimental only and may have issues:
 - `--fontname`
-- `-fontfile`
-- `--no-translit` 
+- `--fontfile`
+- `--no-graft`
 
 ## Press & Media
 

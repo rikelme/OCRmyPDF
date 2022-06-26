@@ -77,7 +77,8 @@ known_third_party = [
   "werkzeug",
   "google-cloud-vision",
   "langcodes",
-  "transliterate"
+  "python-bidi",
+  "rtl"
 ]
 
 [tool.pytest.ini_options]

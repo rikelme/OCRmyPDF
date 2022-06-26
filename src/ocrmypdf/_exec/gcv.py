@@ -136,7 +136,7 @@ class BreakType(Enum):
 	HYPHEN = 4
 	LINE_BREAK = 5
 
-def hocr_from_response(resp, page_no=1, is_translit=True):
+def hocr_from_response(resp, page_no=1):
 	
 	count_dict = {'page': page_no, 'block': 0, 'par': 0, 'line': 0, 'word': 0}
 	class_dict = {'page': 'ocr_page', 'block': 'ocr_carea', 'par': 'ocr_par', 'line': 'ocr_line', 'word': 'ocrx_word'}
@@ -148,21 +148,15 @@ def hocr_from_response(resp, page_no=1, is_translit=True):
 		page.page_height = pageObj.height
 		page.page_width = pageObj.width
 
-		# print(len(pageObj['blocks']), 'num blocks')
 		breaks = []
 		
 		for block in pageObj.blocks:
 
 			block_box = json.loads(MessageToJson(block.bounding_box))['vertices']
-			# print(block_box, 'box')
-			# block_box = MessageToJson(block_box)
-			# print(block_box, 'json box')
 			count_dict['block'] += 1
 			block_id = f'block_{page_no}_' + str(count_dict['block'])
 			cur_block = make_content_box(class_dict['block'], block_box, block_id)
-			# print(len(block['paragraphs']), 'num paras')
 			for paragraph in block.paragraphs:
-				# print(len(paragraph['words']), 'num paras', pid)
 				
 				par_box = json.loads(MessageToJson(paragraph.bounding_box))['vertices']
 				count_dict['par'] += 1
@@ -218,15 +212,8 @@ def hocr_from_response(resp, page_no=1, is_translit=True):
 							# 	pass
 					
 					word_text = ''.join(symbols)
-					# transliterate Cyrilic languages
-					if is_translit:
-						cyr_lang = detect_language(word_text)
-						if cyr_lang:
-							word_text = translit(word_text, cyr_lang, reversed=True)
 
 					word_id = f'word_{page_no}_' + str(count_dict['word'])
-					# print(word_text, 'content')
-					# print(escape(word_text), 'excaped')
 					word = GCVAnnotation(htmlid=word_id, ocr_class='ocrx_word',
 										content=escape(word_text), box=word_box)
 					
@@ -319,7 +306,6 @@ def generate_hocr(
 	languages: List[str],
 	page_no: int,
 	timeout: float,
-	is_translit: bool,
 ):
 	"""Generate a hOCR file using GCV OCR, which must be converted to PDF."""
 	prefix = output_hocr.with_suffix('')
@@ -336,7 +322,7 @@ def generate_hocr(
 			languages = iso_lang_convert(languages)
 		response = gcv_client.document_text_detection(image=image, image_context={"language_hints": languages})
 		# response_json = json.loads(MessageToJson(response))
-		hocr, text_desc = hocr_from_response(response, page_no, is_translit)
+		hocr, text_desc = hocr_from_response(response, page_no)
 		output_hocr.write_text(hocr, encoding='utf-8')
 		output_text.write_text(text_desc, encoding='utf-8')
 
@@ -354,7 +340,6 @@ def generate_hocr(
 
 		raise SubprocessOutputError() from e
 	else:
-		# gcv_log_output(response)
 		# The sidecar text file will get the suffix .txt; rename it to
 		# whatever caller wants it named
 		if prefix.with_suffix('.txt').exists():

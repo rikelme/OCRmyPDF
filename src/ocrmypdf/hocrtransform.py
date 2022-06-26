@@ -43,6 +43,10 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase.ttfonts import TTFont
 
+from bidi.algorithm import get_display
+from rtl import reshaper
+import textwrap
+
 # According to Wikipedia these languages are supported in the ISO-8859-1 character
 # set, meaning reportlab can generate them and they are compatible with hocr,
 # assuming Tesseract has the necessary languages installed. Note that there may
@@ -99,6 +103,23 @@ HOCR_OK_LANGS = frozenset(
 )
 
 
+def get_rtl_text(text):
+	if reshaper.has_arabic_letters(text):
+		words = text.split()
+		reshaped_words = []
+		for word in words:
+			if reshaper.has_arabic_letters(word):
+				# for reshaping and concating words
+				reshaped_text = reshaper.reshape(word)
+				# for right to left    
+				bidi_text = get_display(reshaped_text)
+				reshaped_words.append(bidi_text)
+			else:
+				reshaped_words.append(word)
+		reshaped_words.reverse()
+		return ' '.join(reshaped_words)
+	return text
+
 Element = ElementTree.Element
 
 
@@ -137,11 +158,7 @@ class HocrTransform:
 
 	def __init__(self, *, hocr_filename: Union[str, Path], dpi: float):
 		self.dpi = dpi
-		# hocr_filename = '../test/tess_21a.hocr'
 		self.hocr = ElementTree.parse(os.fspath(hocr_filename))
-		with open(hocr_filename, 'r') as f:
-			for l in f:
-				print(l)
 
 		# if the hOCR file has a namespace, ElementTree requires its use to
 		# find elements
@@ -285,7 +302,6 @@ class HocrTransform:
 			styles['Heading1'].fontName = fontname
 			pdfmetrics.registerFont(TTFont(fontname, fontfile, 'UTF-8'))
 			addMapping(fontname, 0, 0, fontname)
-			print('fonts', fontname)
 
 		# create the PDF file
 		# page size in points (1/72 in.)
@@ -422,6 +438,9 @@ class HocrTransform:
 		elements = line.findall(self._child_xpath('span', elemclass))
 		for elem in elements:
 			elemtxt = self._get_element_text(elem).strip()
+			# for RTL text such as arabic
+			if reshaper.has_arabic_letters(elemtxt):
+				elemtxt = get_rtl_text(elemtxt)
 			if fontname == 'Helvetica':
 				elemtxt = self.replace_unsupported_chars(elemtxt)
 			if elemtxt == '':

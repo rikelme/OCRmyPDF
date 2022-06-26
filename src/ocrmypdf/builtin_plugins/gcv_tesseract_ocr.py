@@ -100,7 +100,10 @@ def check_options(options):
 
 	# Decide on what renderer to use
 	if options.pdf_renderer == 'auto':
-		options.pdf_renderer = 'hocr'
+		if options.ocr_engine == 'tesseract':
+			options.pdf_renderer = 'sandwich'
+		elif options.ocr_engine == 'gcv':
+			options.pdf_renderer = 'hocr'
 
 	# if not tesseract.has_user_words() and (options.user_words or options.user_patterns):
 	# 	log.warning(
@@ -186,7 +189,6 @@ class GCVTesseractOcrEngine(OcrEngine):
 				output_text=output_text,
 				languages=options.languages,
 				page_no=page_no,
-				is_translit=not(options.no_translit),
 				timeout=options.tesseract_timeout,
 			)
 		elif options.ocr_engine == 'tesseract':
