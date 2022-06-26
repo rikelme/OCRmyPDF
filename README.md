@@ -28,13 +28,13 @@ ocrmypdf                      # it's a scriptable command line program
 
 If input file contains non-latin text, you can either use `--ocr-engine tesseract` with `--pdf-renderer auto`, or use GCV with no grafting:
 
-```
+```bash
 ocrmypdf                      # it's a scriptable command line program
-   -l rus                 # it supports multiple languages
+   -l rus                     # it supports multiple languages
    --title "My PDF"           # it can change output metadata
    --jobs 4                   # it uses multiple cores by default
    --ocr-engine gcv           # it provides support for gcv and tesseract based OCR, uses gcv by default
-   --no-graft                 # Use hocr to pdf trnaform output directly, instead of text grafting by pikePDF which only supports Latin text.
+   --no-graft                 # Use hocr to pdf transform output directly, instead of text grafting by pikePDF which only supports Latin text.
    --fontname DejaVuSerif     # use custom font that supports non-latin text
    --fontfile fonts/DejaVuSerif.ttf # Provide path to TTF font file.
    input_scanned.pdf          # takes PDF input (or images)
