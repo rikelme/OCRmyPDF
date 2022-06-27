@@ -326,19 +326,13 @@ def generate_hocr(
 		output_hocr.write_text(hocr, encoding='utf-8')
 		output_text.write_text(text_desc, encoding='utf-8')
 
-	except TimeoutExpired:
-		# Generate a HOCR file with no recognized text if tesseract times out
-		# Temporary workaround to hocrTransform not being able to function if
-		# it does not have a valid hOCR file.
-		page_timedout(timeout)
+	except Exception as e:
+		# gcv_log_output(e)
+		# if b'Image too large' in e or b'Empty page!!' in e:
+		log.warning(f'GCV Failed to prodcue OCR results for page number {page_no}. Ignore if the page is empty.')
 		_generate_null_hocr(output_hocr, output_text, input_file, page_no)
-	except CalledProcessError as e:
-		gcv_log_output(e.output)
-		if b'Image too large' in e.output or b'Empty page!!' in e.output:
-			_generate_null_hocr(output_hocr, output_text, input_file)
-			return
+		return
 
-		raise SubprocessOutputError() from e
 	else:
 		# The sidecar text file will get the suffix .txt; rename it to
 		# whatever caller wants it named
