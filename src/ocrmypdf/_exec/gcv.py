@@ -5,10 +5,8 @@ import io
 import json
 from os import fspath
 from pathlib import Path
-from subprocess import CalledProcessError, TimeoutExpired
 from typing import List
 from enum import Enum
-from xmlrpc.client import boolean
 from langcodes import Language
 from PIL import Image
 
@@ -19,17 +17,10 @@ from google.protobuf.json_format import MessageToJson
 from string import Template
 from xml.sax.saxutils import escape
 
-from transliterate import translit, detect_language
-
-from ocrmypdf.exceptions import (
-	MissingDependencyError,
-	SubprocessOutputError,
-	TesseractConfigError,
-)
-
-
 log = logging.getLogger(__name__)
 gcv_client = vision.ImageAnnotatorClient()
+
+MAPPED_LANGS = {'en', 'zh', 'fr', 'pt', 'es'}
 
 class GCVAnnotation:
 
@@ -120,11 +111,19 @@ def iso_lang_convert(langs):
 	"""
 	Convert ISO 639-2 language codes to ISO 639-1 codes if possible
 	"""
+	langs_filtered = []
 	try:
-		langs_alpha3 = [Language.get(l) for l in langs]
-		langs_filtered = [str(l) for l in langs_alpha3 if l.is_valid()]
+		for l in langs:
+			l_alpha3 = Language.get(l)
+			if l_alpha3.is_valid():
+				# remove part after - in mapped languages
+				lang = str(l_alpha3)
+				l_name = lang.split('-')[0] 
+				if l_name in MAPPED_LANGS:
+					lang = l_name
+				langs_filtered.append(lang)
 	except:
-		langs_filtered = []
+		pass
 	return langs_filtered
 
 class BreakType(Enum):
@@ -259,45 +258,6 @@ class GCVLoggerAdapter(logging.LoggerAdapter):
 		kwargs['extra'] = self.extra
 		return '[GCV] %s' % (msg), kwargs
 
-def gcv_log_output(stream):
-	glog = GCVLoggerAdapter(
-		log, extra=log.extra if hasattr(log, 'extra') else None
-	)
-
-	if not stream:
-		return
-	try:
-		text = stream.decode()
-	except UnicodeDecodeError:
-		text = stream.decode('utf-8', 'ignore')
-
-	lines = text.splitlines()
-	for line in lines:
-		if line.startswith("Tesseract Open Source"):
-			continue
-		elif line.startswith("Warning in pixReadMem"):
-			continue
-		elif 'diacritics' in line:
-			glog.warning("lots of diacritics - possibly poor OCR")
-		elif line.startswith('OSD: Weak margin'):
-			glog.warning("unsure about page orientation")
-		elif 'Error in pixScanForForeground' in line:
-			pass  # Appears to be spurious/problem with nonwhite borders
-		elif 'Error in boxClipToRectangle' in line:
-			pass  # Always appears with pixScanForForeground message
-		elif 'parameter not found: ' in line.lower():
-			glog.error(line.strip())
-			problem = line.split('found: ')[1]
-			raise TesseractConfigError(problem)
-		elif 'error' in line.lower() or 'exception' in line.lower():
-			glog.error(line.strip())
-		elif 'warning' in line.lower():
-			glog.warning(line.strip())
-		elif 'read_params_file' in line.lower():
-			glog.error(line.strip())
-		else:
-			glog.info(line.strip())
-
 def generate_hocr(
 	*,
 	input_file: Path,
@@ -327,7 +287,6 @@ def generate_hocr(
 		output_text.write_text(text_desc, encoding='utf-8')
 
 	except Exception as e:
-		# gcv_log_output(e)
 		# if b'Image too large' in e or b'Empty page!!' in e:
 		log.warning(f'GCV Failed to prodcue OCR results for page number {page_no}. Ignore if the page is empty.')
 		_generate_null_hocr(output_hocr, output_text, input_file, page_no)
