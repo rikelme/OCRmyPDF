@@ -1,11 +1,30 @@
 <img src="docs/images/logo.svg" width="240" alt="OCRmyPDF">
 
-[![Build Status](https://github.com/ocrmypdf/OCRmyPDF/actions/workflows/build.yml/badge.svg)](https://github.com/ocrmypdf/OCRmyPDF/actions/workflows/build.yml) [![PyPI version][pypi]](https://pypi.org/project/ocrmypdf/) ![Homebrew version][homebrew] ![ReadTheDocs][docs] ![Python versions][pyversions]
+_This is a fork of a [fork](https://github.com/ualiawan/OCRmyPDF) of [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF)._
 
-[pypi]: https://img.shields.io/pypi/v/ocrmypdf.svg "PyPI version"
-[homebrew]: https://img.shields.io/homebrew/v/ocrmypdf.svg "Homebrew version"
-[docs]: https://readthedocs.org/projects/ocrmypdf/badge/?version=latest "RTD"
-[pyversions]: https://img.shields.io/pypi/pyversions/ocrmypdf "Supported Python versions"
+Some minor fixes were required to get it working, hopefully using the following steps it will work for you aswell.
+
+1. authenticate using gcloud
+
+   ```
+   gcloud auth application-default login
+   ```
+
+   and follow the prompt to select the propper project
+
+2. run the following commands
+
+   ```
+   vritualenv .venv -ppython3.8
+   source .venv/bin/activate
+   pip install ssh+git@github.com:dominiquegarmier/ocrmypdf
+
+   gcv-ocrmypdf --ocr-engine gcv --output-type pdf -l eng in.pdf out.pdf
+   ```
+
+---
+
+_README of the original [fork](https://github.com/ualiawan/OCRmyPDF)_
 
 This repository is a fork from [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) that adds support for Google Cloud Vision (GCV) APIs based OCR.
 
@@ -42,9 +61,9 @@ ocrmypdf                      # it's a scriptable command line program
 ```
 
 In this case, following to features may not work properly:
+
 - PDF/A support
 - Page rotation
-
 
 [See the release notes for details on the latest changes](https://ocrmypdf.readthedocs.io/en/latest/release_notes.html).
 
@@ -67,12 +86,13 @@ For details: please consult the [documentation](https://ocrmypdf.readthedocs.io/
 ## Motivation
 
 Original [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) repo only provides support for Tesseract engine for OCR. We have extended that to add OCR support based on GCV APIs for document text annotations.
+
 - All preprocessing (dskew and roatation etc.) is done using Tesseract.
 - Can either use Tesseract or GCV APIs for OCR.
 
 ## Installation
-Currenlty only installtion from source is supported. Follow [Installing HEAD revision from sources](docs/installation.rst#installing-head-revision-from-sources) for installation guide. 
 
+Currenlty only installtion from source is supported. Follow [Installing HEAD revision from sources](docs/installation.rst#installing-head-revision-from-sources) for installation guide.
 
 ## Languages
 
@@ -118,6 +138,7 @@ In addition to the required Python version (3.7+), OCRmyPDF requires external pr
 ## Experimental Features
 
 Following arguments are experimental only and may have issues:
+
 - `--fontname`
 - `--fontfile`
 - `--no-graft`
@@ -144,7 +165,7 @@ included commercial and closed source, but asks you to publish source-level
 modifications you make to OCRmyPDF.
 
 Some components of OCRmyPDF have other licenses, as noted in those files and the
-``debian/copyright`` file. Most files in ``misc/`` use the MIT license, and the
+`debian/copyright` file. Most files in `misc/` use the MIT license, and the
 documentation and test files are generally licensed under Creative Commons
 ShareAlike 4.0 (CC-BY-SA 4.0).
 
