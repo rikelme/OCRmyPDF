@@ -17,7 +17,7 @@ Some minor fixes were required to get it working, hopefully using the following 
    ```
    vritualenv .venv -ppython3.8
    source .venv/bin/activate
-   pip install ssh+git@github.com:dominiquegarmier/ocrmypdf
+   pip install git+ssh://git@github.com/dominiquegarmier/ocrmypdf
 
    gcv-ocrmypdf --ocr-engine gcv --output-type pdf -l eng in.pdf out.pdf
    ```
