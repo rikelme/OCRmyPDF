@@ -211,7 +211,7 @@ def exec_page_sync(page_context: PageContext) -> PageResult:
 		)
 	if options.pdf_renderer.startswith('hocr'):
 		(hocr_out, text_out) = ocr_engine_hocr(ocr_image_out, page_context)
-		page_context.image = visible_image_out
+		page_context.image = ocr_image_out
 		ocr_out = render_hocr_page(hocr_out, page_context)
 	elif options.pdf_renderer == 'sandwich':
 		(ocr_out, text_out) = ocr_engine_textonly_pdf(ocr_image_out, page_context)
