@@ -11,7 +11,7 @@ from langcodes import Language
 from PIL import Image
 
 from google.cloud import vision
-from google.cloud.vision import types
+from google.cloud.vision_v1 import types
 from google.protobuf.json_format import MessageToJson
 
 from string import Template
@@ -75,7 +75,7 @@ class GCVAnnotation:
 		self.content = content
 		if box is not None:
 			self._update_box(box)
-	
+
 	def _update_box(self, box):
 		self.x0 = box[0]['x']
 		self.y0 = box[0]['y']
@@ -97,7 +97,7 @@ class GCVAnnotation:
 			content = "".join(map(lambda x: x.render(), self.content))
 		else:
 			content = escape(self.content)
-		
+
 		return self.__class__.templates[self.ocr_class].substitute(self.__dict__, content=content)
 
 def make_content_box(ocr_class=None, box=None, id=None):
@@ -118,7 +118,7 @@ def iso_lang_convert(langs):
 			if l_alpha3.is_valid():
 				# remove part after - in mapped languages
 				lang = str(l_alpha3)
-				l_name = lang.split('-')[0] 
+				l_name = lang.split('-')[0]
 				if l_name in MAPPED_LANGS:
 					lang = l_name
 				langs_filtered.append(lang)
@@ -136,7 +136,6 @@ class BreakType(Enum):
 	LINE_BREAK = 5
 
 def hocr_from_response(resp, page_no=1):
-	
 	count_dict = {'page': page_no, 'block': 0, 'par': 0, 'line': 0, 'word': 0}
 	class_dict = {'page': 'ocr_page', 'block': 'ocr_carea', 'par': 'ocr_par', 'line': 'ocr_line', 'word': 'ocrx_word'}
 
@@ -148,16 +147,16 @@ def hocr_from_response(resp, page_no=1):
 		page.page_width = pageObj.width
 
 		breaks = []
-		
+
 		for block in pageObj.blocks:
 
-			block_box = json.loads(MessageToJson(block.bounding_box))['vertices']
+			block_box = json.loads(MessageToJson(block.bounding_box._pb))['vertices']
 			count_dict['block'] += 1
 			block_id = f'block_{page_no}_' + str(count_dict['block'])
 			cur_block = make_content_box(class_dict['block'], block_box, block_id)
 			for paragraph in block.paragraphs:
-				
-				par_box = json.loads(MessageToJson(paragraph.bounding_box))['vertices']
+
+				par_box = json.loads(MessageToJson(paragraph.bounding_box._pb))['vertices']
 				count_dict['par'] += 1
 				par_id = f'par_{page_no}_' + str(count_dict['par'])
 				cur_par = make_content_box(class_dict['par'], par_box, par_id)
@@ -167,10 +166,10 @@ def hocr_from_response(resp, page_no=1):
 				cur_line = make_content_box(class_dict['line'], None, line_id)
 				new_line = None # for multiple line is para
 				for wordObj in paragraph.words:
-					word_box = json.loads(MessageToJson(wordObj.bounding_box))['vertices']
+					word_box = json.loads(MessageToJson(wordObj.bounding_box._pb))['vertices']
 					count_dict['word'] += 1
 					symbols = []
-					
+
 					for symbol in wordObj.symbols:
 						symbols.append(symbol.text)
 
@@ -184,7 +183,7 @@ def hocr_from_response(resp, page_no=1):
 						if detected_break is not None:
 							# detectedBreak = detectedBreak.type
 							breaks.append(detected_break)
-								
+
 							# add best guesses for word breaks
 							# print(detectedBreak)
 							# if detectedBreak == 'SPACE':
@@ -209,13 +208,13 @@ def hocr_from_response(resp, page_no=1):
 							# elif detectedBreak == 'LINE_BREAK':
 							# 	# symbols.append(' ')
 							# 	pass
-					
+
 					word_text = ''.join(symbols)
 
 					word_id = f'word_{page_no}_' + str(count_dict['word'])
 					word = GCVAnnotation(htmlid=word_id, ocr_class='ocrx_word',
 										content=escape(word_text), box=word_box)
-					
+
 					cur_line.content.append(word)
 					#update if there is a EOL break
 					if new_line is not None:
@@ -227,7 +226,7 @@ def hocr_from_response(resp, page_no=1):
 				cur_par.content.append(cur_line)
 				cur_par.maximize_bbox()
 				cur_block.content.append(cur_par)
-			
+
 			cur_block.maximize_bbox()
 			page.content.append(cur_block)
 		page.maximize_bbox()
@@ -276,18 +275,20 @@ def generate_hocr(
 	try:
 		with io.open(fspath(input_file), 'rb') as image_file:
 			content = image_file.read()
-	
+
 		image = types.Image(content=content)
 		if languages:
 			languages = iso_lang_convert(languages)
 		response = gcv_client.document_text_detection(image=image, image_context={"language_hints": languages})
-		# response_json = json.loads(MessageToJson(response))
+		# response_json = json.loads(MessageToJson(response._pb))
+		#log.warning(response)
 		hocr, text_desc = hocr_from_response(response, page_no)
 		output_hocr.write_text(hocr, encoding='utf-8')
 		output_text.write_text(text_desc, encoding='utf-8')
 
 	except Exception as e:
 		# if b'Image too large' in e or b'Empty page!!' in e:
+		log.warn(e)
 		log.warning(f'GCV Failed to prodcue OCR results for page number {page_no}. Ignore if the page is empty.')
 		_generate_null_hocr(output_hocr, output_text, input_file, page_no)
 		return
