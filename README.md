@@ -15,11 +15,12 @@ Some minor fixes were required to get it working, hopefully using the following 
 2. run the following commands
 
    ```
-   vritualenv .venv -ppython3.8
+   git clone git@github.com/dominiquegarmier/ocrmypdf
+   virtualenv .venv -ppython3.8
    source .venv/bin/activate
-   pip install git+ssh://git@github.com/dominiquegarmier/ocrmypdf
+   pip install ocrmypdf
 
-   gcv-ocrmypdf --ocr-engine gcv --output-type pdf -l eng in.pdf out.pdf
+   gcv-ocrmypdf --ocr-engine gcv --output-type pdf -l hrv,srp,eng in.pdf out.pdf
    ```
 
 ---
